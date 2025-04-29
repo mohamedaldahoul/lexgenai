@@ -25,9 +25,7 @@ app.secret_key = os.getenv("SECRET_KEY", "default-secret-key")
 
 # Configure CORS
 CORS(app, resources={r"/api/*": {
-    "origins": [
-        "https://lexgenai.vercel.app",
-    ],
+    "origins": "https://lexgenai.vercel.app", 
     "methods": ["GET", "POST", "OPTIONS"],
     "allow_headers": ["Content-Type", "Authorization"]
 }})
