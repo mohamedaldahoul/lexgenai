@@ -39,7 +39,10 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Configure OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
+client = OpenAI(api_key=openai_api_key)
 
 # Document types and their descriptions
 DOCUMENT_TYPES = {
