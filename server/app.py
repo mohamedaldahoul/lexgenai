@@ -7,7 +7,7 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
-from openai import OpenAI
+import openai
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -42,13 +42,7 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
-client = OpenAI(
-    api_key=openai_api_key,
-    organization=None,
-    base_url=None,
-    timeout=30,
-    max_retries=3
-)
+openai.api_key = openai_api_key
 
 # Document types and their descriptions
 DOCUMENT_TYPES = {
@@ -203,7 +197,7 @@ Format the document professionally with appropriate sections, headings, and lega
         
         for attempt in range(max_retries):
             try:
-                response = client.chat.completions.create(
+                response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a legal document generator that creates professional, legally-sound documents tailored to specific business needs and jurisdictions."},
@@ -342,7 +336,7 @@ def health_check():
         stripe.Account.retrieve()
         openai_status = "ok"
         try:
-            client.models.list(timeout=5)
+            openai.Model.list(timeout=5)
         except Exception as e:
             openai_status = f"error: {str(e)}"
         
@@ -379,7 +373,7 @@ def preview_document():
         Please generate a professional legal document based on these requirements."""
 
         # Call OpenAI API
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a legal document generation assistant. Create professional, well-structured legal documents based on the provided requirements."},
