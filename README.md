@@ -1,32 +1,40 @@
-# Legal Document Generator
+# LexGenAI - Legal Document Generator
 
-A full-stack application for generating professional legal documents using AI.
+A full-stack application for generating professional legal documents using AI. Built with Next.js, Flask, and powered by OpenAI.
 
-## Features
+## 🚀 Live Demo
+[Coming Soon]
 
-- Generate various types of legal documents (NDA, Terms of Service, Privacy Policy, etc.)
-- Customize documents with business-specific details
-- Secure payment processing with Stripe
-- AI-powered document generation using OpenAI
-- PDF document creation and download
-- Modern, responsive UI
+## ✨ Features
 
-## Tech Stack
+- 📄 Generate various legal documents (NDA, Terms of Service, Privacy Policy, etc.)
+- 🎯 Customize documents with business-specific details
+- 💳 Secure payment processing with Stripe
+- 🤖 AI-powered document generation using OpenAI
+- 📱 Modern, responsive UI built with Tailwind CSS
 
-### Frontend
+## 🛠️ Tech Stack
+
+### Frontend (web/)
 - Next.js 14
 - TypeScript
 - Tailwind CSS
 - Stripe Elements
 
-### Backend
+### Backend (server/)
 - Flask
 - Python
 - OpenAI API
 - Stripe API
 - ReportLab (PDF generation)
 
-## Setup Instructions
+## 🏗️ Local Development Setup
+
+### Prerequisites
+- Node.js 18+ and npm/yarn
+- Python 3.8+
+- Stripe account
+- OpenAI API key
 
 ### Backend Setup
 
@@ -35,7 +43,7 @@ A full-stack application for generating professional legal documents using AI.
 cd server
 ```
 
-2. Create a virtual environment:
+2. Create and activate virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -46,15 +54,15 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the server directory with the following variables:
-```
+4. Create `.env` file:
+```bash
 SECRET_KEY=your-secret-key-here
 STRIPE_SECRET_KEY=your-stripe-secret-key
 STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 OPENAI_API_KEY=your-openai-api-key
 ```
 
-5. Start the backend server:
+5. Start the development server:
 ```bash
 python app.py
 ```
@@ -73,58 +81,79 @@ npm install
 yarn install
 ```
 
-3. Start the development server:
+3. Create `.env.local` file:
+```bash
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 # or
 yarn dev
 ```
 
-## Usage
+## 🚀 Production Deployment
 
-1. Open your browser and navigate to `http://localhost:3000`
-2. Fill out the document generation form with your business details
-3. Click "Generate Document" to proceed to payment
-4. Complete the payment process
-5. Wait for the document to be generated
-6. Download your generated document
+### Backend Deployment (Flask)
+1. Install production dependencies:
+```bash
+pip install gunicorn
+```
 
-## API Endpoints
+2. Set up environment variables on your hosting platform
+3. Configure CORS settings for production domain
+4. Use gunicorn for production server:
+```bash
+gunicorn app:app
+```
 
-### Backend API
+### Frontend Deployment (Next.js)
+1. Build the application:
+```bash
+npm run build
+# or
+yarn build
+```
 
-- `POST /api/create-checkout-session`: Create a Stripe checkout session
-- `GET /api/payment-success`: Check payment status and generate document
-- `GET /api/download/<filename>`: Download generated document
-- `GET /api/health`: Health check endpoint
+2. Set up environment variables on your hosting platform
+3. Deploy the built application
 
-## Development
+## 🔒 Security Considerations
 
-### Running Tests
+- All API keys and secrets are stored as environment variables
+- CORS is configured for specific domains in production
+- Input validation on both frontend and backend
+- Secure payment processing through Stripe
+- Rate limiting on API endpoints
 
-To test the payment processing flow:
+## 📝 API Documentation
 
-1. Visit `http://localhost:3000/test-payment`
-2. You'll be redirected to the payment processing page
-3. The system will simulate document generation and download
+### Backend Endpoints
 
-### Environment Variables
+- `POST /api/create-checkout-session`
+  - Creates Stripe checkout session
+  - Returns session ID for frontend redirect
 
-Make sure to set up the following environment variables:
+- `GET /api/payment-success`
+  - Verifies payment status
+  - Triggers document generation
 
-- `SECRET_KEY`: Flask secret key for session management
-- `STRIPE_SECRET_KEY`: Your Stripe secret key
-- `STRIPE_PUBLISHABLE_KEY`: Your Stripe publishable key
-- `OPENAI_API_KEY`: Your OpenAI API key
+- `GET /api/download/<filename>`
+  - Securely serves generated documents
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👥 Authors
+
+- Mohamed Al-Dahoul - Initial work - [mohamedaldahoul](https://github.com/mohamedaldahoul) 

@@ -1,43 +1,41 @@
 import type { Metadata } from "next";
-import { Inter, Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
+import Script from "next/script";
+import ClientOnly from "@/components/providers/ClientOnly";
+import StripeProvider from "@/components/providers/StripeProvider";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  display: "swap",
   variable: "--font-inter",
 });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "LexGen AI | Professional Legal Documents in Minutes",
-  description: "Generate professional legal documents for your business needs across Europe with our AI-powered platform.",
+  title: "LexGenAI - Legal Document Generator",
+  description: "Generate professional legal documents using AI",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.svg" />
-        <script src="https://js.stripe.com/v3/" async></script>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body
-        className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${inter.variable} antialiased`}>
+        <Script 
+          src="https://js.stripe.com/v3/"
+          strategy="lazyOnload"
+        />
+          <ClientOnly fallback={<LoadingSpinner />}>
+            <StripeProvider>
+              {children}
+            </StripeProvider>
+          </ClientOnly>
       </body>
     </html>
   );

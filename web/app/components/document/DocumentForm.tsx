@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Timer from './Timer';
-declare const Stripe: any;
 
-interface FormData {
+export interface FormData {
   document_type: string;
   business_name: string;
   business_type: string;
@@ -13,11 +12,11 @@ interface FormData {
   language: string;
   industry: string;
   protection_level: string;
-  clause_confidentiality: boolean;
-  clause_arbitration: boolean;
-  clause_termination: boolean;
-  clause_ip: boolean;
-  additional_instructions: string;
+  clause_confidentiality?: boolean;
+  clause_arbitration?: boolean;
+  clause_termination?: boolean;
+  clause_ip?: boolean;
+  additional_instructions?: string;
 }
 
 const DOCUMENT_TYPES = {
@@ -82,19 +81,17 @@ export default function DocumentForm() {
     additional_instructions: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const stripe = Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-      
       const response = await fetch('http://localhost:5000/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ formData }),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -102,39 +99,32 @@ export default function DocumentForm() {
         throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Redirect to Stripe checkout
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.sessionId
-      });
-
-      if (error) {
-        throw error;
-      }
+      const { sessionId } = await response.json();
+      router.push(`/checkout?session_id=${sessionId}`);
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error:', error);
       alert('Failed to create checkout session. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
+    const finalValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: finalValue
     }));
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-      <div className="p-6">
+    <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden px-4 sm:px-0">
+      <div className="p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-center text-primary mb-6">
           Generate Your Custom Legal Document
         </h2>
@@ -177,7 +167,7 @@ export default function DocumentForm() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="business_type" className="block text-sm font-medium text-secondary mb-1">
                 Business Type
@@ -217,7 +207,7 @@ export default function DocumentForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="country" className="block text-sm font-medium text-secondary mb-1">
                 Country
@@ -317,8 +307,8 @@ export default function DocumentForm() {
             />
           </div>
 
-          <div className="bg-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-gray-200 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
               <div className="text-2xl font-bold text-primary">£20</div>
               <div className="text-sm text-secondary line-through">Regular price: £40 - Save 55% today!</div>
             </div>

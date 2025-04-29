@@ -1,24 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Legal Document Generator Frontend
 
-## Getting Started
+This is the Next.js frontend for the Legal Document Generator application. It provides a user interface for document generation and payment processing.
 
-First, run the development server:
+## Setup
 
+1. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+2. Create a `.env.local` file in the web directory with the following variables:
+```
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key-here
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The application will start on http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Document generation form with various input fields
+- Integration with Stripe for payment processing
+- Real-time document preview
+- Responsive design using Tailwind CSS
+
+## Project Structure
+
+- `app/`: Next.js app router pages and layouts
+- `components/`: Reusable React components
+  - `document/`: Document-related components
+    - `DocumentForm.tsx`: Main form for document generation
+- `public/`: Static assets
+- `styles/`: Global styles and Tailwind CSS configuration
 
 ## Learn More
 

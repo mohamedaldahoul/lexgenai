@@ -195,7 +195,7 @@ Format the document professionally with appropriate sections, headings, and lega
         for attempt in range(max_retries):
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4-turbo",
+                    model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a legal document generator that creates professional, legally-sound documents tailored to specific business needs and jurisdictions."},
                         {"role": "user", "content": prompt}
@@ -348,6 +348,50 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/preview-document', methods=['POST'])
+def preview_document():
+    try:
+        data = request.json
+        
+        # Create a prompt based on the form data
+        prompt = f"""Create a {data['document_type']} for {data['business_name']}, a {data['business_type']} in {data['country']}.
+        Industry: {data['industry']}
+        Protection Level: {data['protection_level']}
+        Special Clauses:
+        - Confidentiality: {'Yes' if data.get('clause_confidentiality') else 'No'}
+        - Arbitration: {'Yes' if data.get('clause_arbitration') else 'No'}
+        - Termination: {'Yes' if data.get('clause_termination') else 'No'}
+        - IP Protection: {'Yes' if data.get('clause_ip') else 'No'}
+        
+        Additional Instructions: {data.get('additional_instructions', 'None')}
+        
+        Please generate a professional legal document based on these requirements."""
+
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a legal document generation assistant. Create professional, well-structured legal documents based on the provided requirements."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.7
+        )
+
+        # Extract the generated document
+        generated_text = response.choices[0].message.content
+
+        return jsonify({
+            "preview": generated_text,
+            "status": "success"
+        })
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "error"
         }), 500
 
 if __name__ == '__main__':

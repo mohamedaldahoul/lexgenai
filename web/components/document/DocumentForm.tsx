@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Timer from '@/app/components/document/Timer';
+import DocumentPreview from './DocumentPreview';
 
-interface FormData {
+export interface FormData {
   document_type: string;
   business_name: string;
   business_type: string;
@@ -61,6 +62,7 @@ const INDUSTRIES = [
 
 export default function DocumentForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     document_type: '',
     business_name: '',
@@ -75,8 +77,11 @@ export default function DocumentForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowPreview(true);
+  };
+
+  const handleProceedToPayment = async () => {
     setIsLoading(true);
-    
     try {
       const response = await fetch('http://localhost:5000/api/create-checkout-session', {
         method: 'POST',
@@ -107,6 +112,16 @@ export default function DocumentForm() {
       [name]: value
     }));
   };
+
+  if (showPreview) {
+    return (
+      <DocumentPreview
+        formData={formData}
+        onBack={() => setShowPreview(false)}
+        onProceedToPayment={handleProceedToPayment}
+      />
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-8 shadow-lg">

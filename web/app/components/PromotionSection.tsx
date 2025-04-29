@@ -46,7 +46,7 @@ export default function Hero() {
               </svg>
             </div>
             <span className="text-white text-lg">
-              Save $500+ Compared to Traditional Legal Services
+              Save £400+ Compared to Traditional Legal Services
             </span>
           </div>
 
