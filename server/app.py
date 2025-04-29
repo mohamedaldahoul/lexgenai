@@ -42,7 +42,13 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
-client = OpenAI(api_key=openai_api_key)
+client = OpenAI(
+    api_key=openai_api_key,
+    organization=None,
+    base_url=None,
+    timeout=30,
+    max_retries=3
+)
 
 # Document types and their descriptions
 DOCUMENT_TYPES = {
