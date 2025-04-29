@@ -28,7 +28,7 @@ export default function TestPage() {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:5000/api/preview-document', {
+      const response = await fetch(`${process.env.API_URL}/api/preview-document`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
