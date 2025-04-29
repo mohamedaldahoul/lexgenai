@@ -15,11 +15,11 @@ export default function DocumentPreviews() {
     employment: (
       <>
         <h3 className="text-lg font-bold mb-3">EMPLOYMENT CONTRACT</h3>
-        <p className="mb-2">This Employment Contract ("Contract") is made between:</p>
+        <p className="mb-2">This Employment Contract (&quot;Contract&quot;) is made between:</p>
         <p className="mb-4"><strong>EMPLOYER:</strong> [Company Name], a company registered under the laws of [Country]</p>
         <p className="mb-4"><strong>EMPLOYEE:</strong> [Employee Name]</p>
         <p className="font-semibold mb-2">1. POSITION AND DUTIES</p>
-        <p className="mb-4">The Employee is hired for the position of [Position]. The Employee's duties include but are not limited to [Job Responsibilities].</p>
+        <p className="mb-4">The Employee is hired for the position of [Position]. The Employee&apos;s duties include but are not limited to [Job Responsibilities].</p>
         <p className="font-semibold mb-2">2. TERM</p>
         <p className="mb-4">This Contract shall commence on [Start Date] and shall continue until terminated in accordance with the provisions herein.</p>
       </>
@@ -27,11 +27,11 @@ export default function DocumentPreviews() {
     nda: (
       <>
         <h3 className="text-lg font-bold mb-3">NON-DISCLOSURE AGREEMENT</h3>
-        <p className="mb-2">This Non-Disclosure Agreement ("Agreement") is entered into between:</p>
+        <p className="mb-2">This Non-Disclosure Agreement (&quot;Agreement&quot;) is entered into between:</p>
         <p className="mb-4"><strong>DISCLOSING PARTY:</strong> [Company Name], a company registered under the laws of [Country]</p>
         <p className="mb-4"><strong>RECEIVING PARTY:</strong> [Recipient Name/Company]</p>
         <p className="font-semibold mb-2">1. CONFIDENTIAL INFORMATION</p>
-        <p className="mb-4">"Confidential Information" means any information disclosed by the Disclosing Party to the Receiving Party, either directly or indirectly, in writing, orally or by inspection of tangible objects.</p>
+        <p className="mb-4">&quot;Confidential Information&quot; means any information disclosed by the Disclosing Party to the Receiving Party, either directly or indirectly, in writing, orally or by inspection of tangible objects.</p>
         <p className="font-semibold mb-2">2. OBLIGATIONS</p>
         <p className="mb-4">The Receiving Party shall hold all Confidential Information in strict confidence and shall not disclose any Confidential Information to any third party.</p>
       </>
@@ -39,18 +39,18 @@ export default function DocumentPreviews() {
     terms: (
       <>
         <h3 className="text-lg font-bold mb-3">TERMS OF SERVICE</h3>
-        <p className="mb-2">These Terms of Service ("Terms") govern your access to and use of [Company Name]'s services.</p>
+        <p className="mb-2">These Terms of Service (&quot;Terms&quot;) govern your access to and use of [Company Name]&apos;s services.</p>
         <p className="mb-4"><strong>EFFECTIVE DATE:</strong> [Date]</p>
         <p className="font-semibold mb-2">1. ACCEPTANCE OF TERMS</p>
         <p className="mb-4">By accessing or using our Services, you agree to be bound by these Terms and our Privacy Policy.</p>
         <p className="font-semibold mb-2">2. DESCRIPTION OF SERVICES</p>
-        <p className="mb-4">[Company Name] provides [description of services] (collectively, the "Services").</p>
+        <p className="mb-4">[Company Name] provides [description of services] (collectively, the &quot;Services&quot;).</p>
       </>
     ),
     privacy: (
       <>
         <h3 className="text-lg font-bold mb-3">PRIVACY POLICY</h3>
-        <p className="mb-2">This Privacy Policy ("Policy") describes how [Company Name] collects, uses, and discloses your information.</p>
+        <p className="mb-2">This Privacy Policy (&quot;Policy&quot;) describes how [Company Name] collects, uses, and discloses your information.</p>
         <p className="mb-4"><strong>LAST UPDATED:</strong> [Date]</p>
         <p className="font-semibold mb-2">1. INFORMATION WE COLLECT</p>
         <p className="mb-4">We collect information that you provide directly to us, information we collect automatically when you use our Services, and information from third-party sources.</p>

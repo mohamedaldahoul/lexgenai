@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import PaymentProcessingUI from '@/components/payment/PaymentProcessingUI';
+import PaymentProcessingUI from './PaymentProcessingUI';
 
 const catchphrases = [
   "Turning legal jargon into plain English...",
