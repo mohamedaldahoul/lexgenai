@@ -22,7 +22,7 @@ export default function Testimonials() {
           
           <div className="bg-light p-6 rounded-lg shadow-md">
             <div className="text-primary mb-3">★★★★★</div>
-            <p className="text-gray mb-6">As a startup founder, legal costs were eating into our budget. This service has been a game-changer - professional documents at a fraction of the cost and available instantly. The state-specific compliance was exactly what we needed.</p>
+            <p className="text-gray mb-6">As a startup founder, legal costs were eating into our budget. This service has been a game-changer - professional documents at a fraction of the cost and available instantly. The country-specific compliance was exactly what we needed.</p>
             <div className="flex items-center">
               <div className="w-12 h-12 rounded-full bg-cover bg-center mr-4" style={{backgroundImage: "url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80')"}}></div>
               <div>

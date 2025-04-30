@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
-import ClientOnly from "@/components/providers/ClientOnly";
-import StripeProvider from "@/components/providers/StripeProvider";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import ClientOnly from "./components/providers/ClientOnly";
+import StripeProvider from "./components/providers/StripeProvider";
+import LoadingSpinner from "./components/ui/LoadingSpinner";
 import "./globals.css";
 
 const inter = Inter({

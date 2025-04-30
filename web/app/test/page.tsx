@@ -5,6 +5,7 @@ import type { FormData } from '@/app/components/document/DocumentForm';
 
 export default function TestPage() {
   const [generatedDocument, setGeneratedDocument] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -26,9 +27,11 @@ export default function TestPage() {
   const handleTestGeneration = async () => {
     setIsLoading(true);
     setError('');
+    setDownloadUrl('');
     
     try {
-      const response = await fetch(`${process.env.API_URL}/api/preview-document`, {
+      // First, generate the preview
+      const previewResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/preview-document`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,12 +39,30 @@ export default function TestPage() {
         body: JSON.stringify(testFormData),
       });
 
-      if (!response.ok) {
+      if (!previewResponse.ok) {
         throw new Error('Failed to generate document preview');
       }
 
-      const data = await response.json();
-      setGeneratedDocument(data.preview);
+      const previewData = await previewResponse.json();
+      setGeneratedDocument(previewData.preview);
+
+      // Then, generate the PDF for download
+      const downloadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/generate-test-document`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testFormData),
+      });
+
+      if (!downloadResponse.ok) {
+        throw new Error('Failed to generate downloadable document');
+      }
+
+      const downloadData = await downloadResponse.json();
+      if (downloadData.download_url) {
+        setDownloadUrl(`${process.env.NEXT_PUBLIC_API_URL}${downloadData.download_url}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate document');
       console.error('Error:', err);
@@ -75,9 +96,21 @@ export default function TestPage() {
         </div>
       )}
 
+      {downloadUrl && (
+        <div className="mb-6">
+          <a
+            href={downloadUrl}
+            download
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block"
+          >
+            Download PDF
+          </a>
+        </div>
+      )}
+
       {generatedDocument && (
         <div>
-          <h2 className="text-lg font-semibold mb-2">Generated Document:</h2>
+          <h2 className="text-lg font-semibold mb-2">Generated Document Preview:</h2>
           <div className="bg-white border border-gray-200 rounded-lg p-6 whitespace-pre-wrap">
             {generatedDocument}
           </div>

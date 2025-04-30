@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 export default function Timer() {
   const [time, setTime] = useState({
-    hours: 3,
+    hours: 5,
     mins: 51,
     secs: 20
   });

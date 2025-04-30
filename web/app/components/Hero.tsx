@@ -24,7 +24,7 @@ export default function Hero() {
         </li>
         <li className="flex items-center">
           <div className="w-2 h-2 rounded-full bg-accent mr-3"></div>
-          State-Specific Legal Compliance Built-In
+          Country-Specific Legal Compliance Built-In
         </li>
       </ul>
     </div>

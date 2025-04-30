@@ -7,7 +7,7 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -32,7 +32,10 @@ CORS(app, resources={r"/api/*": {
         "https://lexgenai.onrender.com"
     ],
     "methods": ["GET", "POST", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
+    "allow_headers": ["Content-Type", "Authorization"],
+    "expose_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True,
+    "max_age": 600
 }})
 
 # Configure rate limiting
@@ -48,10 +51,9 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Configure OpenAI
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+if not client.api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
-openai.api_key = openai_api_key
 
 # Document types and their descriptions
 DOCUMENT_TYPES = {
@@ -67,6 +69,9 @@ DOCUMENT_TYPES = {
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "static", "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# Configure test mode
+TEST_MODE_ENABLED = os.getenv("ENABLE_TEST_MODE", "false").lower() == "true"
+
 @app.route('/api/create-checkout-session', methods=['POST'])
 @limiter.limit("10 per minute")
 def create_checkout_session():
@@ -80,7 +85,7 @@ def create_checkout_session():
             line_items=[
                 {
                     'price_data': {
-                        'currency': 'usd',
+                        'currency': 'eur',
                         'product_data': {
                             'name': f'Legal Document: {DOCUMENT_TYPES.get(form_data.get("document_type", ""), "Custom Document")}',
                             'description': 'AI-generated legal document tailored to your business needs',
@@ -163,7 +168,8 @@ def generate_document(form_data):
         document_type = form_data.get('document_type')
         business_name = form_data.get('business_name')
         business_type = form_data.get('business_type')
-        state = form_data.get('state')
+        country = form_data.get('country')
+        language = form_data.get('language')
         industry = form_data.get('industry')
         protection_level = form_data.get('protection_level', '2')
         
@@ -179,8 +185,8 @@ def generate_document(form_data):
         
         additional_instructions = form_data.get('additional_instructions', '')
         
-        prompt = f"""Generate a professional {DOCUMENT_TYPES.get(document_type, 'legal document')} for {business_name}, a {business_type} in the {industry} industry, operating in {state}.
-
+        prompt = f"""Generate a professional {DOCUMENT_TYPES.get(document_type, 'legal document')} for {business_name}, a {business_type} in the {industry} industry, operating in {country}.
+Language: {language}
 Protection Level: {protection_level} out of 3
 
 Special Clauses to Include: {', '.join(clauses) if clauses else 'None'}
@@ -198,7 +204,7 @@ Additional Instructions: {additional_instructions}
 - Avoid overly dense paragraphs; break them up into short, digestible sections.
 - Use legal language but ensure clarity for business professionals.
 
-Format the document professionally with appropriate sections, headings, and legal language. Include all necessary legal provisions for this type of document in {state}.
+Format the document professionally with appropriate sections, headings, and legal language. Include all necessary legal provisions for this type of document in {country}.
 """
 
         max_retries = 3
@@ -206,14 +212,14 @@ Format the document professionally with appropriate sections, headings, and lega
         
         for attempt in range(max_retries):
             try:
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a legal document generator that creates professional, legally-sound documents tailored to specific business needs and jurisdictions."},
                         {"role": "user", "content": prompt}
                     ],
-                    timeout=30,
-                    max_tokens=4000
+                    max_tokens=4000,
+                    temperature=0.7
                 )
                 
                 document_text = response.choices[0].message.content
@@ -345,7 +351,7 @@ def health_check():
         stripe.Account.retrieve()
         openai_status = "ok"
         try:
-            openai.Model.list(timeout=5)
+            client.models.list()
         except Exception as e:
             openai_status = f"error: {str(e)}"
         
@@ -362,8 +368,18 @@ def health_check():
             'timestamp': datetime.now().isoformat()
         }), 500
 
+def is_localhost():
+    remote_addr = request.remote_addr
+    return remote_addr == "127.0.0.1" or remote_addr == "localhost" or remote_addr.startswith("192.168.") or remote_addr.startswith("10.")
+
 @app.route('/api/preview-document', methods=['POST'])
 def preview_document():
+    if not is_localhost():
+        return jsonify({
+            "error": "This endpoint is only available in development mode",
+            "status": "error"
+        }), 403
+
     try:
         data = request.json
         
@@ -381,8 +397,8 @@ def preview_document():
         
         Please generate a professional legal document based on these requirements."""
 
-        # Call OpenAI API
-        response = openai.ChatCompletion.create(
+        # Call OpenAI API with new syntax
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a legal document generation assistant. Create professional, well-structured legal documents based on the provided requirements."},
@@ -392,7 +408,7 @@ def preview_document():
             temperature=0.7
         )
 
-        # Extract the generated document
+        # Extract the generated document with new syntax
         generated_text = response.choices[0].message.content
 
         return jsonify({
@@ -405,6 +421,40 @@ def preview_document():
             "error": str(e),
             "status": "error"
         }), 500
+
+@app.route('/api/generate-test-document', methods=['POST'])
+def generate_test_document():
+    if not is_localhost():
+        return jsonify({
+            "error": "This endpoint is only available in development mode",
+            "status": "error"
+        }), 403
+        
+    try:
+        data = request.json
+        document_result = generate_document(data)
+        
+        if document_result.get('success'):
+            return jsonify(document_result)
+        else:
+            return jsonify({
+                "error": "Failed to generate document",
+                "status": "error"
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "error"
+        }), 500
+
+# Add OPTIONS handler for all routes
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
