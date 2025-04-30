@@ -2,9 +2,28 @@
 
 import Link from 'next/link';
 
+const Features = [
+  {
+    title: "Secure Payment",
+    description: "We use Stripe for secure payments. Your financial information is always protected.",
+    icon: "🔒"
+  },
+  {
+    title: "Secure Payment",
+    description: "We use Stripe for secure payments. Your financial information is always protected.",
+    icon: "🔒"
+  },
+  {
+    title: "Secure Payment",
+    description: "We use Stripe for secure payments. Your financial information is always protected.",
+    icon: "🔒"
+  }
+]
+
+
 const Footer = () => {
   return (
-    <footer className="bg-[#0F172A] text-gray-300 py-16">
+    <footer className="bg-[#0f2a4d] text-gray-300 py-16">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
@@ -56,34 +75,19 @@ const Footer = () => {
 
         {/* Features Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 mb-8">
-          <div className="flex items-center space-x-3 bg-[#1E293B] p-4 rounded-lg">
+        {Features.map((feature) => (
+          <div key={feature.title} className="flex items-center space-x-3 bg-[#262c35] p-4 rounded-lg">
             <div className="bg-[#b89457] p-2 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <span className="text-white font-medium">{feature.icon}</span>
             </div>
-            <span className="text-white font-medium">Secure Payment</span>
+            <span className="text-white font-medium">{feature.title}</span>
           </div>
-          <div className="flex items-center space-x-3 bg-[#1E293B] p-4 rounded-lg">
-            <div className="bg-[#b89457] p-2 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <span className="text-white font-medium">Privacy Protected</span>
-          </div>
-          <div className="flex items-center space-x-3 bg-[#1E293B] p-4 rounded-lg">
-            <div className="bg-[#b89457] p-2 rounded-full">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="text-white font-medium">24/7 Support</span>
-          </div>
+          
+))}
         </div>
 
         {/* Copyright */}
-        <div className="text-center text-sm text-gray-400 mt-8">
+        <div className="text-center text-sm text-gray-300 mt-8">
           © 2023 LexGenAI. All rights reserved.
         </div>
       </div>

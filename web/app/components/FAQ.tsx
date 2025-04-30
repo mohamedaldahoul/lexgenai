@@ -52,7 +52,7 @@ export default function FAQ() {
           {faqItems.map((item, index) => (
             <div key={index} className="mb-4 bg-white rounded-lg shadow-md overflow-hidden">
               <div 
-                className="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50"
+                className="p-5 pt-4 pb-4  flex justify-between items-center cursor-pointer hover:bg-gray-50"
                 onClick={() => toggleItem(index)}
               >
                 <h3 className="font-semibold text-lg">{item.question}</h3>
@@ -62,7 +62,7 @@ export default function FAQ() {
               </div>
               
               {openItems[index] && (
-                <div className="p-5 pt-0 border-t border-gray-light">
+                <div className="p-5 pt-3 pb-3 border-t border-gray-light">
                   <p className="text-gray">{item.answer}</p>
                 </div>
               )}
