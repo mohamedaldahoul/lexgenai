@@ -37,7 +37,7 @@ const BUSINESS_TYPES = [
 ];
 
 const COUNTRIES = [
-  "UK",
+  "United Kingdom",
   "Germany",
   "Denmark",
   "Sweden"
@@ -51,15 +51,17 @@ const LANGUAGES = [
 ];
 
 const INDUSTRIES = [
-  "Technology",
+  "Technology/Software",
+  "E-commerce/Retail",
   "Healthcare",
-  "Finance",
+  "Finance Services",
   "Education",
-  "Retail",
-  "Manufacturing",
-  "Real Estate",
-  "Legal Services",
   "Consulting",
+  "Marketing/Advertising",
+  "Manufacturing",
+  "Construction",
+  "Food Service",
+  "Entertainment",
   "Other"
 ];
 
@@ -258,7 +260,7 @@ export default function DocumentForm() {
               max="3"
               value={formData.protection_level}
               onChange={handleChange}
-              className="w-full h-2 accent-accent"
+              className="w-full h-2 accent-[#b89457]"
             />
             <div className="flex justify-between text-xs text-secondary mt-1">
               <span>Standard</span>
@@ -345,7 +347,7 @@ export default function DocumentForm() {
           <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-[#2563eb] hover:bg-primary-dark text-white font-medium rounded-md flex items-center justify-center space-x-2 disabled:opacity-50"
+              className="w-full py-3 px-4 bg-[#b89457] hover:bg-primary-dark text-white font-medium rounded-md flex items-center justify-center space-x-2 disabled:opacity-50"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 1v11m0 0 4-4m-4 4L4 8m11 4v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3" />

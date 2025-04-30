@@ -48,7 +48,6 @@ limiter = Limiter(
 
 # Configure Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Configure OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -186,7 +185,8 @@ def generate_document(form_data):
         additional_instructions = form_data.get('additional_instructions', '')
         
         prompt = f"""Generate a professional {DOCUMENT_TYPES.get(document_type, 'legal document')} for {business_name}, a {business_type} in the {industry} industry, operating in {country}.
-Language: {language}
+Language document should be in {language}
+
 Protection Level: {protection_level} out of 3
 
 Special Clauses to Include: {', '.join(clauses) if clauses else 'None'}
@@ -341,7 +341,7 @@ def create_pdf(text, filepath, business_name, document_type):
     doc.build(content)
 
 @app.route('/api/download/<filename>')
-@limiter.limit("10 per minute")
+# @limiter.limit("10 per minute")
 def download_file(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
 
@@ -449,12 +449,12 @@ def generate_test_document():
         }), 500
 
 # Add OPTIONS handler for all routes
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# @app.after_request
+# def after_request(response):
+#     response.headers.add('Access-Control-Allow-Origin', '*')
+#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+#     return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

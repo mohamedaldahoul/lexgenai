@@ -45,8 +45,8 @@ export default function FAQ() {
   return (
     <section className="py-16 bg-light">
       <div className="container mx-auto max-w-7xl px-5">
-        <h2 className="text-3xl font-bold text-center mb-4">Frequently Asked Questions</h2>
-        <p className="text-gray text-center mb-12">Everything you need to know about our AI-generated legal documents</p>
+        <h2 className="text-3xl font-bold text-[#f8fafc] text-center mb-4">Frequently Asked Questions</h2>
+        <p className="text-[#f8fafc] text-center mb-12">Everything you need to know about our AI-generated legal documents</p>
         
         <div className="max-w-3xl mx-auto">
           {faqItems.map((item, index) => (

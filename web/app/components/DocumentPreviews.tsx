@@ -63,15 +63,15 @@ export default function DocumentPreviews() {
   return (
     <section className="py-16 bg-light">
       <div className="container mx-auto max-w-7xl px-5">
-        <h2 className="text-3xl font-bold text-center mb-12">Document Previews</h2>
+        <h2 className="text-3xl font-bold text-[#f8fafc] text-center mb-12">Document Previews</h2>
         
         {/* Tab Navigation */}
-        <div className="flex flex-wrap justify-center mb-8 gap-2">
+        <div className="flex flex-wrap justify-center mb-4 gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2 rounded-full font-medium transition-colors ${activeTab === tab.id ? 'bg-primary text-dark' : 'bg-white text-gray hover:bg-gray-light'}`}
+              className={`px-4.5 py-2 rounded-full font-medium transition-colors ${activeTab === tab.id ? 'bg-[#b89457] text-[#f8fafc]' : 'bg-white text-gray hover:bg-gray-light'}`}
             >
               {tab.label}
             </button>
@@ -93,7 +93,7 @@ export default function DocumentPreviews() {
           {/* Document Footer */}
           <div className="mt-8 pt-4 border-t border-gray-light text-center">
             <p className="text-sm text-gray mb-4">This is a sample document. The final document will be customized based on your inputs.</p>
-            <button className="bg-primary hover:bg-primary/80 text-dark font-medium py-2 px-6 rounded-md transition duration-300">
+            <button className="bg-[#aaaeb5] hover:bg-primary/80 text-dark font-medium py-2 px-6 rounded-md transition duration-300">
               Generate Your Document
             </button>
           </div>

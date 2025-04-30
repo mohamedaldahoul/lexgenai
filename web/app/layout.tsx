@@ -5,6 +5,7 @@ import ClientOnly from "./components/providers/ClientOnly";
 import StripeProvider from "./components/providers/StripeProvider";
 import LoadingSpinner from "./components/ui/LoadingSpinner";
 import "./globals.css";
+import Footer from "./components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -12,8 +13,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "LexGenAI - Legal Document Generator",
-  description: "Generate professional legal documents using AI",
+  title: "LexGenAI - AI-Powered Legal Document Generator",
+  description: "Generate professional legal documents instantly using AI. Save time and money while ensuring legal compliance.",
 };
 
 export default function RootLayout({
@@ -36,6 +37,7 @@ export default function RootLayout({
               {children}
             </StripeProvider>
           </ClientOnly>
+        <Footer />
       </body>
     </html>
   );
