@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { FormData } from '@/app/components/document/DocumentForm';
+import api from '@/utils/axios';
 
 export default function TestPage() {
   const [generatedDocument, setGeneratedDocument] = useState<string>('');
@@ -31,35 +32,13 @@ export default function TestPage() {
     
     try {
       // First, generate the preview
-      const previewResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/preview-document`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testFormData),
-      });
-
-      if (!previewResponse.ok) {
-        throw new Error('Failed to generate document preview');
-      }
-
-      const previewData = await previewResponse.json();
+      const previewResponse = await api.post(`/api/preview-document`, testFormData);
+      const previewData = previewResponse.data;
       setGeneratedDocument(previewData.preview);
 
       // Then, generate the PDF for download
-      const downloadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/generate-test-document`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testFormData),
-      });
-
-      if (!downloadResponse.ok) {
-        throw new Error('Failed to generate downloadable document');
-      }
-
-      const downloadData = await downloadResponse.json();
+      const downloadResponse = await api.post(`/api/generate-test-document`, testFormData);
+      const downloadData = downloadResponse.data;
       if (downloadData.download_url) {
         setDownloadUrl(`${process.env.NEXT_PUBLIC_API_URL}${downloadData.download_url}`);
       }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PaymentProcessingUI from './PaymentProcessingUI';
+import api from '@/utils/axios';
 
 const catchphrases = [
   "Turning legal jargon into plain English...",
@@ -73,19 +74,8 @@ export default function PaymentProcessingPage() {
 
     const checkPaymentStatus = async (retryCount = 0, maxRetries = 3) => {
       try {
-        const response = await fetch(`/api/payment-success?session_id=${sessionId}`);
-        
-        if (!response.ok) {
-          if (response.status === 503 && retryCount < maxRetries) {
-            setTimeout(() => {
-              checkPaymentStatus(retryCount + 1, maxRetries);
-            }, (retryCount + 1) * 2000);
-            return;
-          }
-          throw new Error(`Server error: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const response = await api.get(`/payment-success?session_id=${sessionId}`);
+        const data = response.data;
 
         if (data.success) {
           clearInterval(animationInterval);

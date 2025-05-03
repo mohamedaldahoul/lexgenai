@@ -3,6 +3,7 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Timer from './Timer';
+import api from '@/utils/axios';
 
 export interface FormData {
   document_type: string;
@@ -88,21 +89,11 @@ export default function DocumentForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/create-checkout-session', { // for development "http://localhost:5000"
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      const response = await api.post('/create-checkout-session', {
+        // your request body here
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { sessionId } = await response.json();
-      router.push(`/checkout?session_id=${sessionId}`);
+      const data = response.data;
+      router.push(`/checkout?session_id=${data.sessionId}`);
     } catch (error) {
       console.error('Error:', error);
       alert('Failed to create checkout session. Please try again.');
@@ -125,7 +116,7 @@ export default function DocumentForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden px-4 sm:px-0">
+    <div className="max-w-xl max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden pl-0 px-4 sm:px-0">
       <div className="p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-center text-primary mb-6">
           Generate Your Custom Legal Document

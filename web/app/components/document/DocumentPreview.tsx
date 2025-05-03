@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FormData } from './DocumentForm';
+import api from '@/utils/axios';
 
 interface DocumentPreviewProps {
   formData: FormData;
@@ -22,20 +23,8 @@ export default function DocumentPreview({ formData, onBack, onProceedToPayment }
   const fetchPreview = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/preview-document', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate preview');
-      }
-
-      const data = await response.json();
-      setPreview(data.preview);
+      const response = await api.post(`/preview-document`, formData);
+      setPreview(response.data.preview);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate preview');
     } finally {
