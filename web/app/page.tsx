@@ -20,7 +20,6 @@ export default function Home() {
     document.body.appendChild(stripeScript);
 
     return () => {
-      // Clean up the script when component unmounts
       document.body.removeChild(stripeScript);
     };
   }, []);
@@ -35,19 +34,10 @@ export default function Home() {
           <DocumentForm />
         </div>
       </div>
-
-      {/* How It Works Section */}
       <HowItWorks />
       <Advantages />
-
-
-      {/* Document Previews Section */}
       <DocumentPreviews />
-
-      {/* Testimonials Section */}
       <Testimonials />
-
-      {/* FAQ Section */}
       <FAQ />
     </div>
   );
