@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PaymentProcessingUI from './PaymentProcessingUI';
 import api from '@/utils/axios';
 
@@ -43,13 +43,14 @@ const legalEmojis = [
 
 export default function PaymentProcessingPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   const sessionId = searchParams.get('session_id');
   const [progress, setProgress] = useState(0);
   const [currentCatchphrase, setCurrentCatchphrase] = useState(catchphrases[0]);
   const [currentEmoji, setCurrentEmoji] = useState(legalEmojis[0]);
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState('');
-  const [downloadUrl, setDownloadUrl] = useState('');
 
   useEffect(() => {
     if (!sessionId) {
@@ -74,22 +75,11 @@ export default function PaymentProcessingPage() {
 
     const checkPaymentStatus = async (retryCount = 0, maxRetries = 3) => {
       try {
-        const response = await api.get(`/payment-success?session_id=${sessionId}`);
+        const response = await api.get(`/api/payment-success?session_id=${sessionId}`);
         const data = response.data;
 
         if (data.success) {
-          clearInterval(animationInterval);
-          setProgress(100);
-          setStatus('success');
-          setDownloadUrl(data.download_url);
-          
-          // Auto-download the file
-          const link = document.createElement('a');
-          link.href = data.download_url;
-          link.download = data.download_url.split('/').pop() || 'document.pdf';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          router.replace(`/document-preview?session_id=${sessionId}`);
         } else if (data.status === 'processing') {
           setTimeout(() => {
             checkPaymentStatus();
@@ -104,7 +94,6 @@ export default function PaymentProcessingPage() {
           }, (retryCount + 1) * 2000);
           return;
         }
-        
         clearInterval(animationInterval);
         setProgress(100);
         setStatus('error');
@@ -113,9 +102,8 @@ export default function PaymentProcessingPage() {
     };
 
     checkPaymentStatus();
-
     return () => clearInterval(animationInterval);
-  }, [sessionId]);
+  }, [sessionId, router]);
 
   return (
     <PaymentProcessingUI
@@ -124,7 +112,6 @@ export default function PaymentProcessingPage() {
       currentEmoji={currentEmoji}
       status={status}
       errorMessage={errorMessage}
-      downloadUrl={downloadUrl}
     />
   );
 } 
