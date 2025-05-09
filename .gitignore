@@ -64,3 +64,6 @@ ENV/
 !.yarn/releases
 !.yarn/versions
 .pnp.*
+
+# Generated files
+server/static/downloads/

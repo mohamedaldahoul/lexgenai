@@ -22,10 +22,12 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default-secret-key")
+frontend_URL = os.getenv("FRONTEND_URL")
 
 # Configure CORS
 CORS(app, resources={r"/api/*": {
     "origins": [
+        f"{frontend_URL}",
         "http://localhost:3000",
         "https://lexgenai.vercel.app",
         "https://lexgenai-git-main-mohamedaldahoul.vercel.app",
@@ -51,6 +53,7 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Configure OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 if not client.api_key:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 
@@ -89,14 +92,14 @@ def create_checkout_session():
                             'name': f'Legal Document: {DOCUMENT_TYPES.get(form_data.get("document_type", ""), "Custom Document")}',
                             'description': 'AI-generated legal document tailored to your business needs',
                         },
-                        'unit_amount': 2000,  # £20.00 in cents
+                        'unit_amount': 1900,  # £19.00 in cents
                     },
                     'quantity': 1,
                 },
             ],
             mode='payment',
-            success_url=request.host_url.rstrip('/') + '/payment-processing?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=request.host_url.rstrip('/') + '/payment-processing?status=cancelled',
+            success_url=f'{frontend_URL}/payment-processing?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{frontend_URL}/payment-processing?status=cancelled',
             metadata={
                 'form_data': json.dumps(form_data)
             }
@@ -162,7 +165,7 @@ def payment_success():
         app.logger.error(f"Payment success route error: {str(e)}")
         return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
 
-def generate_document(form_data):
+def generate_document(form_data, generate_pdf=True):
     try:
         document_type = form_data.get('document_type')
         business_name = form_data.get('business_name')
@@ -221,10 +224,8 @@ Format the document professionally with appropriate sections, headings, and lega
                     max_tokens=4000,
                     temperature=0.7
                 )
-                
                 document_text = response.choices[0].message.content
                 break
-                
             except Exception as e:
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
@@ -232,16 +233,23 @@ Format the document professionally with appropriate sections, headings, and lega
                 else:
                     raise Exception(f"Failed to generate document after {max_retries} attempts: {str(e)}")
         
-        unique_id = uuid.uuid4().hex[:8]
-        filename = f"{document_type}_{unique_id}.pdf"
-        filepath = os.path.join(DOWNLOAD_FOLDER, filename)
-        
-        create_pdf(document_text, filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
-        
-        return {
-            'success': True,
-            'download_url': f'/api/download/{filename}'
-        }
+        if generate_pdf:
+            unique_id = uuid.uuid4().hex[:8]
+            filename = f"{document_type}_{unique_id}.pdf"
+            filepath = os.path.join(DOWNLOAD_FOLDER, filename)
+            
+            create_pdf(document_text, filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
+            
+            return {
+                'success': True,
+                'filename': filename,
+                'preview': document_text
+            }
+        else:
+            return {
+                'success': True,
+                'preview': document_text
+            }
     
     except Exception as e:
         app.logger.error(f"Document generation error: {str(e)}")
@@ -448,13 +456,50 @@ def generate_test_document():
             "status": "error"
         }), 500
 
+@app.route('/api/document-details', methods=['GET'])
+def document_details():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return jsonify({'error': 'No session_id provided'}), 400
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        form_data = json.loads(session.metadata.get('form_data', '{}'))
+        document_result = generate_document(form_data, generate_pdf=False)
+        if document_result.get('success'):
+            return jsonify({
+                'preview': document_result.get('preview')
+            })
+        else:
+            return jsonify({'error': 'Document not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-pdf', methods=['GET'])
+def generate_pdf_on_demand():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return jsonify({'error': 'No session_id provided'}), 400
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        form_data = json.loads(session.metadata.get('form_data', '{}'))
+        document_result = generate_document(form_data, generate_pdf=True)
+        if document_result.get('success'):
+            filename = document_result.get('filename')
+            return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
+        else:
+            return jsonify({'error': 'Failed to generate PDF'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Add OPTIONS handler for all routes
-# @app.after_request
-# def after_request(response):
-#     response.headers.add('Access-Control-Allow-Origin', '*')
-#     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-#     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-#     return response
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

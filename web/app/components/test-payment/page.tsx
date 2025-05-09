@@ -8,7 +8,7 @@ export default function TestPaymentPage() {
 
   useEffect(() => {
     // Redirect to payment processing with a mock session ID
-    router.push('/payment-processing?session_id=test_session_123');
+    router.push('api/payment-processing?session_id=test_session_123');
   }, [router]);
 
   return (

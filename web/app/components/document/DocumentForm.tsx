@@ -89,9 +89,8 @@ export default function DocumentForm() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/create-checkout-session', {
+      const response = await api.post(`/api/create-checkout-session`, { formData });
         // your request body here
-      });
       const data = response.data;
       router.push(`/checkout?session_id=${data.sessionId}`);
     } catch (error) {
@@ -302,7 +301,7 @@ export default function DocumentForm() {
 
           <div className="bg-gray-200 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
-              <div className="text-2xl font-bold text-primary">£20</div>
+              <div className="text-2xl font-bold text-primary">£19</div>
               <div className="text-sm text-secondary line-through">Regular price: £40 - Save 55% today!</div>
             </div>
             <div className="space-y-1 mb-4">

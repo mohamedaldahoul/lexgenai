@@ -9,7 +9,7 @@ interface PaymentProcessingUIProps {
   currentEmoji: string;
   status: 'processing' | 'success' | 'error';
   errorMessage: string;
-  downloadUrl: string;
+  downloadUrl?: string;
 }
 
 export default function PaymentProcessingUI({
