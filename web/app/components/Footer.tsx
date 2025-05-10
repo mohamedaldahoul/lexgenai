@@ -58,8 +58,8 @@ const Footer = () => {
               <li><Link href="/how-it-works" className="hover:text-blue-400">How It Works</Link></li>
               <li><Link href="/testimonials" className="hover:text-blue-400">Testimonials</Link></li>
               <li>
-                {/* <Link href="mailto:name@email.com" className="hover:text-blue-400">Contact</Link> */}
-                  <a href= "mailto:name@email.com" className="hover:text-blue-400">Contact</a>
+                {/* <Link href="mailto:support@lexgenai.com" className="hover:text-blue-400">Contact</Link> */}
+                  <a href= "mailto:support@lexgenai.com" className="hover:text-blue-400">Contact</a>
                 </li>
             </ul>
           </div>
@@ -91,7 +91,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="text-center text-sm text-gray-300 mt-8">
-          © 2023 LexGenAI. All rights reserved.
+          © 2023 LexGenAI. All rights reserved. <a className="text-decoration-line: underline hover:text-blue-400" href="mailto:support@lexgenai.com">support@lexgenai.com</a>
         </div>
       </div>
     </footer>
