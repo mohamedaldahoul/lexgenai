@@ -179,6 +179,7 @@ def generate_document(form_data, generate_pdf=True, generate_docx=False):
         business_name = form_data.get('business_name')
         business_type = form_data.get('business_type')
         country = form_data.get('country')
+        state_province = form_data.get('state_province', '')
         language = form_data.get('language')
         industry = form_data.get('industry')
         protection_level = form_data.get('protection_level', '2')
@@ -195,7 +196,12 @@ def generate_document(form_data, generate_pdf=True, generate_docx=False):
         
         additional_instructions = form_data.get('additional_instructions', '')
         
-        prompt = f"""Generate a professional {DOCUMENT_TYPES.get(document_type, 'legal document')} for {business_name}, a {business_type} in the {industry} industry, operating in {country}.
+        # Include state/province in the prompt if provided
+        location_detail = f"{country}"
+        if state_province:
+            location_detail = f"{state_province}, {country}"
+        
+        prompt = f"""Generate a professional {DOCUMENT_TYPES.get(document_type, 'legal document')} for {business_name}, a {business_type} in the {industry} industry, operating in {location_detail}.
 Language document should be in {language}
 
 Protection Level: {protection_level} out of 3
@@ -215,7 +221,7 @@ Additional Instructions: {additional_instructions}
 - Avoid overly dense paragraphs; break them up into short, digestible sections.
 - Use legal language but ensure clarity for business professionals.
 
-Format the document professionally with appropriate sections, headings, and legal language. Include all necessary legal provisions for this type of document in {country}.
+Format the document professionally with appropriate sections, headings, and legal language. Include all necessary legal provisions for this type of document in {location_detail}.
 """
 
         max_retries = 3
@@ -463,8 +469,13 @@ def preview_document():
     try:
         data = request.json
         
+        # Add state/province to location if available
+        location = data['country']
+        if data.get('state_province'):
+            location = f"{data['state_province']}, {data['country']}"
+        
         # Create a prompt based on the form data
-        prompt = f"""Create a {data['document_type']} for {data['business_name']}, a {data['business_type']} in {data['country']}.
+        prompt = f"""Create a {data['document_type']} for {data['business_name']}, a {data['business_type']} in {location}.
         Industry: {data['industry']}
         Protection Level: {data['protection_level']}
         Special Clauses:

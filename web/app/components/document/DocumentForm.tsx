@@ -10,6 +10,7 @@ export interface FormData {
   business_name: string;
   business_type: string;
   country: string;
+  state_province?: string;
   language: string;
   industry: string;
   protection_level: string;
@@ -44,6 +45,14 @@ const COUNTRIES = [
   "Sweden"
 ];
 
+const UK_REGIONS = [
+  "British Forces",
+  "England",
+  "North Ireland",
+  "Scotland",
+  "Wales"
+];
+
 const LANGUAGES = [
   "English",
   "German",
@@ -74,6 +83,7 @@ export default function DocumentForm() {
     business_name: '',
     business_type: '',
     country: '',
+    state_province: '',
     language: '',
     industry: '',
     protection_level: '2',
@@ -108,11 +118,22 @@ export default function DocumentForm() {
     const isCheckbox = type === 'checkbox';
     const finalValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: finalValue
-    }));
+    // Clear state_province when country changes to non-UK
+    if (name === 'country' && value !== 'United Kingdom') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        state_province: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: finalValue
+      }));
+    }
   };
+
+  const isUnitedKingdom = formData.country === 'United Kingdom';
 
   return (
     <div className="max-w-xl max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden pl-0 px-4 sm:px-0">
@@ -199,6 +220,7 @@ export default function DocumentForm() {
             </div>
           </div>
 
+          {/* Country and State/Province in 2-column grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="country" className="block text-sm font-medium text-secondary mb-1">
@@ -220,23 +242,55 @@ export default function DocumentForm() {
             </div>
 
             <div>
-              <label htmlFor="language" className="block text-sm font-medium text-secondary mb-1">
-                Language
+              <label htmlFor="state_province" className="block text-sm font-medium text-secondary mb-1">
+                State/Province {!isUnitedKingdom && <span className="text-gray-400">(Optional)</span>}
               </label>
-              <select
-                id="language"
-                name="language"
-                value={formData.language}
-                onChange={handleChange}
-                className="w-full p-2 border border-secondary/20 rounded-md focus:border-accent focus:ring-1 focus:ring-accent"
-                required
-              >
-                <option value="">Select language...</option>
-                {LANGUAGES.map(language => (
-                  <option key={language} value={language}>{language}</option>
-                ))}
-              </select>
+              {isUnitedKingdom ? (
+                <select
+                  id="state_province"
+                  name="state_province"
+                  value={formData.state_province}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-secondary/20 rounded-md focus:border-accent focus:ring-1 focus:ring-accent"
+                  required
+                >
+                  <option value="">Select region...</option>
+                  {UK_REGIONS.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  id="state_province"
+                  name="state_province"
+                  placeholder="Enter state or province (optional)"
+                  value={formData.state_province}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-secondary/20 rounded-md focus:border-accent focus:ring-1 focus:ring-accent"
+                />
+              )}
             </div>
+          </div>
+
+          {/* Language field moved below */}
+          <div>
+            <label htmlFor="language" className="block text-sm font-medium text-secondary mb-1">
+              Language
+            </label>
+            <select
+              id="language"
+              name="language"
+              value={formData.language}
+              onChange={handleChange}
+              className="w-full p-2 border border-secondary/20 rounded-md focus:border-accent focus:ring-1 focus:ring-accent"
+              required
+            >
+              <option value="">Select language...</option>
+              {LANGUAGES.map(language => (
+                <option key={language} value={language}>{language}</option>
+              ))}
+            </select>
           </div>
 
           <div>
