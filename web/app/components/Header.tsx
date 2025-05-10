@@ -5,7 +5,7 @@ export default function Header() {
     <header className="bg-white sticky top-0 z-100 shadow-sm">
       <div className="container mx-auto max-w-7xl px-5">
         <div className="flex justify-between items-center py-3">
-          <Link href="/" className="text-xl font-bold text-dark flex items-center no-underline">
+          <Link href="/" className="text-xl font-bold text-dark flex items-center no-underline text-[length:28]">
             Lex<span className="text-primary text-[#b89457]">Gen</span> AI
           </Link>
           
