@@ -15,6 +15,10 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib import colors
 import stripe
 import time
+# Import for DOCX generation
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # Load environment variables
 load_dotenv()
@@ -165,7 +169,7 @@ def payment_success():
         app.logger.error(f"Payment success route error: {str(e)}")
         return jsonify({'error': f"An unexpected error occurred: {str(e)}"}), 500
 
-def generate_document(form_data, generate_pdf=True):
+def generate_document(form_data, generate_pdf=True, generate_docx=False):
     try:
         document_type = form_data.get('document_type')
         business_name = form_data.get('business_name')
@@ -197,11 +201,11 @@ Special Clauses to Include: {', '.join(clauses) if clauses else 'None'}
 Additional Instructions: {additional_instructions}
 
 **Formatting Guidelines:**
-- Use clear section headings in bold and all caps (e.g., TERMS AND CONDITIONS).
+- Use clear section headings in bold and all caps (e.g., **TERMS AND CONDITIONS**).
 - Use proper indentation and line spacing for readability.
 - Ensure signature fields are properly spaced and formatted as follows:
 
-  Signature: ______________________     Date: ___________________
+  **Signature:** ______________________  **Date:** _______________
 
 - Use bullet points for lists where appropriate.
 - Avoid overly dense paragraphs; break them up into short, digestible sections.
@@ -233,23 +237,25 @@ Format the document professionally with appropriate sections, headings, and lega
                 else:
                     raise Exception(f"Failed to generate document after {max_retries} attempts: {str(e)}")
         
+        unique_id = uuid.uuid4().hex[:8]
+        result = {
+            'success': True,
+            'preview': document_text
+        }
+        
         if generate_pdf:
-            unique_id = uuid.uuid4().hex[:8]
-            filename = f"{document_type}_{unique_id}.pdf"
-            filepath = os.path.join(DOWNLOAD_FOLDER, filename)
+            pdf_filename = f"{document_type}_{unique_id}.pdf"
+            pdf_filepath = os.path.join(DOWNLOAD_FOLDER, pdf_filename)
+            create_pdf(document_text, pdf_filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
+            result['pdf_filename'] = pdf_filename
+        
+        if generate_docx:
+            docx_filename = f"{document_type}_{unique_id}.docx"
+            docx_filepath = os.path.join(DOWNLOAD_FOLDER, docx_filename)
+            create_docx(document_text, docx_filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
+            result['docx_filename'] = docx_filename
             
-            create_pdf(document_text, filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
-            
-            return {
-                'success': True,
-                'filename': filename,
-                'preview': document_text
-            }
-        else:
-            return {
-                'success': True,
-                'preview': document_text
-            }
+        return result
     
     except Exception as e:
         app.logger.error(f"Document generation error: {str(e)}")
@@ -348,6 +354,68 @@ def create_pdf(text, filepath, business_name, document_type):
     
     doc.build(content)
 
+def create_docx(text, filepath, business_name, document_type):
+    doc = Document()
+    
+    # Set document margins (1 inch on all sides)
+    sections = doc.sections
+    for section in sections:
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(1)
+        section.right_margin = Inches(1)
+    
+    # Add title
+    title = doc.add_paragraph()
+    title_run = title.add_run(document_type.upper())
+    title_run.bold = True
+    title_run.font.size = Pt(16)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add business name
+    business = doc.add_paragraph()
+    business_run = business.add_run(f"For: {business_name}")
+    business_run.bold = True
+    business_run.font.size = Pt(14)
+    business.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add date
+    date_paragraph = doc.add_paragraph()
+    date_paragraph.add_run(f"Date: {datetime.now().strftime('%B %d, %Y')}")
+    date_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    
+    # Add document text
+    paragraphs = text.split("\n")
+    for para in paragraphs:
+        if not para.strip():
+            continue
+            
+        # Determine paragraph style
+        if para.strip().startswith('#') or (para.strip().isupper() and len(para.strip()) > 3):
+            # This is a heading
+            header_text = para.replace('#', '').strip()
+            header = doc.add_paragraph()
+            header_run = header.add_run(header_text if '#' in para else para)
+            header_run.bold = True
+            header_run.font.size = Pt(14)
+            header.style = 'Heading 2'
+        
+        elif para.strip().startswith(('•', '-', '*')):
+            # This is a bullet point
+            p = doc.add_paragraph(para.strip().lstrip('•-* '), style='List Bullet')
+            
+        elif "signature" in para.lower() or "sign" in para.lower() or "date:" in para.lower():
+            # This is a signature line
+            p = doc.add_paragraph()
+            p.add_run(para).bold = True
+            p.space_after = Pt(20)
+            
+        else:
+            # Regular paragraph
+            p = doc.add_paragraph(para)
+    
+    doc.save(filepath)
+
 @app.route('/api/download/<filename>')
 # @limiter.limit("10 per minute")
 def download_file(filename):
@@ -440,7 +508,7 @@ def generate_test_document():
         
     try:
         data = request.json
-        document_result = generate_document(data)
+        document_result = generate_document(data, generate_pdf=True, generate_docx=False)
         
         if document_result.get('success'):
             return jsonify(document_result)
@@ -465,7 +533,7 @@ def document_details():
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         form_data = json.loads(session.metadata.get('form_data', '{}'))
-        document_result = generate_document(form_data, generate_pdf=False)
+        document_result = generate_document(form_data, generate_pdf=False, generate_docx=False)
         if document_result.get('success'):
             return jsonify({
                 'preview': document_result.get('preview')
@@ -484,12 +552,30 @@ def generate_pdf_on_demand():
     try:
         session = stripe.checkout.Session.retrieve(session_id)
         form_data = json.loads(session.metadata.get('form_data', '{}'))
-        document_result = generate_document(form_data, generate_pdf=True)
+        document_result = generate_document(form_data, generate_pdf=True, generate_docx=False)
         if document_result.get('success'):
-            filename = document_result.get('filename')
+            filename = document_result.get('pdf_filename')
             return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
         else:
             return jsonify({'error': 'Failed to generate PDF'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-docx', methods=['GET'])
+def generate_docx_on_demand():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return jsonify({'error': 'No session_id provided'}), 400
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        form_data = json.loads(session.metadata.get('form_data', '{}'))
+        document_result = generate_document(form_data, generate_pdf=False, generate_docx=True)
+        if document_result.get('success'):
+            filename = document_result.get('docx_filename')
+            return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
+        else:
+            return jsonify({'error': 'Failed to generate DOCX'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

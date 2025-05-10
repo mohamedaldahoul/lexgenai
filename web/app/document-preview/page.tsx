@@ -28,19 +28,19 @@ export default function DocumentPreviewPage() {
 
   if (loading) return <div>Loading...</div>;
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: 'pdf' | 'docx') => {
     if (sessionId) {
       try {
-        // Create a link to download the PDF from the server
+        // Create a link to download the document from the server
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-        const downloadUrl = `${apiBaseUrl}/api/generate-pdf?session_id=${sessionId}`;
+        const downloadUrl = `${apiBaseUrl}/api/generate-${format}?session_id=${sessionId}`;
         window.open(downloadUrl, '_blank');
         
         setTimeout(() => {
           router.push("/");
         }, 1500);
       } catch (error) {
-        console.error("Error downloading document:", error);
+        console.error(`Error downloading ${format.toUpperCase()} document:`, error);
       }
     }
   };
@@ -51,13 +51,30 @@ export default function DocumentPreviewPage() {
       <div className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200 max-h-[500px] overflow-y-auto">
         <pre className="whitespace-pre-wrap font-mono text-sm">{preview || "No preview available."}</pre>
       </div>
-      <button
-        onClick={handleDownload}
-        disabled={!sessionId}
-        className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md flex items-center justify-center space-x-2 disabled:opacity-50"
-      >
-        Download Document
-      </button>
+      
+      <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+        <button
+          onClick={() => handleDownload('pdf')}
+          disabled={!sessionId}
+          className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md flex items-center justify-center space-x-2 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>Download PDF</span>
+        </button>
+
+        <button
+          onClick={() => handleDownload('docx')}
+          disabled={!sessionId}
+          className="flex-1 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md flex items-center justify-center space-x-2 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>Download Word</span>
+        </button>
+      </div>
     </div>
   );
 } 
