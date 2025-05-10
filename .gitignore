@@ -67,3 +67,4 @@ ENV/
 
 # Generated files
 server/static/downloads/
+server/static/revisions/

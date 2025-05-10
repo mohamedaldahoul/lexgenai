@@ -75,6 +75,10 @@ DOCUMENT_TYPES = {
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "static", "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# Add a Revisions folder
+REVISIONS_FOLDER = os.path.join(os.getcwd(), "static", "revisions")
+os.makedirs(REVISIONS_FOLDER, exist_ok=True)
+
 # Configure test mode
 TEST_MODE_ENABLED = os.getenv("ENABLE_TEST_MODE", "false").lower() == "true"
 
@@ -577,6 +581,240 @@ def generate_docx_on_demand():
         else:
             return jsonify({'error': 'Failed to generate DOCX'}), 500
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/document-feedback', methods=['POST'])
+def submit_document_feedback():
+    try:
+        data = request.get_json()
+        session_id = data.get('sessionId')
+        comment = data.get('comment')
+        
+        if not session_id or not comment:
+            return jsonify({'error': 'Both sessionId and comment are required'}), 400
+            
+        # Retrieve the session to verify it exists
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            form_data = json.loads(session.metadata.get('form_data', '{}'))
+        except Exception as e:
+            return jsonify({'error': f'Invalid session: {str(e)}'}), 400
+            
+        # Create a revision record
+        revision_id = uuid.uuid4().hex
+        feedback_file = os.path.join(DOWNLOAD_FOLDER, f"feedback_{revision_id}.json")
+        
+        revision_data = {
+            'session_id': session_id,
+            'revision_id': revision_id,
+            'comment': comment,
+            'timestamp': datetime.now().isoformat(),
+            'status': 'pending',
+            'form_data': form_data
+        }
+        
+        with open(feedback_file, 'w') as f:
+            json.dump(revision_data, f, indent=2)
+            
+        # Schedule or trigger document update process
+        # For this implementation, we'll generate the updated document immediately
+        try:
+            updated_document = generate_revised_document(revision_data)
+            
+            # Update the revision status
+            revision_data['status'] = 'completed'
+            revision_data['completed_at'] = datetime.now().isoformat()
+            
+            with open(feedback_file, 'w') as f:
+                json.dump(revision_data, f, indent=2)
+                
+            return jsonify({
+                'success': True,
+                'message': 'Your document has been updated successfully',
+                'revision_id': revision_id
+            })
+            
+        except Exception as update_error:
+            app.logger.error(f"Error updating document: {str(update_error)}")
+            # Mark the revision as failed
+            revision_data['status'] = 'failed'
+            revision_data['error'] = str(update_error)
+            
+            with open(feedback_file, 'w') as f:
+                json.dump(revision_data, f, indent=2)
+                
+            return jsonify({
+                'success': False,
+                'message': 'We received your feedback but could not generate an updated document. Our team will review it.',
+                'revision_id': revision_id
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Error submitting feedback: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def generate_revised_document(revision_data):
+    """Generate an updated document based on user feedback"""
+    session_id = revision_data['session_id']
+    revision_id = revision_data['revision_id']
+    comment = revision_data['comment']
+    form_data = revision_data['form_data']
+    
+    # Get the original document text by generating it again
+    # In a production system, you might want to store and retrieve the original text
+    original_result = generate_document(form_data, generate_pdf=False, generate_docx=False)
+    original_text = original_result.get('preview', '')
+    
+    # Create a prompt for updating the document
+    prompt = f"""
+I have a legal document that needs to be updated based on user feedback. 
+
+Here is the original document:
+```
+{original_text}
+```
+
+The user has requested the following changes:
+```
+{comment}
+```
+
+Please provide the complete updated document with the requested changes incorporated. 
+Return only the revised document text, properly formatted with all original sections and with the requested changes applied.
+"""
+
+    # Generate the updated document using OpenAI
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a legal document revision assistant. Update documents precisely according to user feedback while maintaining their professional structure and format."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=4000,
+        temperature=0.7
+    )
+    
+    updated_text = response.choices[0].message.content
+    
+    # Save the updated document in various formats
+    document_type = form_data.get('document_type', 'document')
+    business_name = form_data.get('business_name', 'Business')
+    
+    # Generate PDF
+    pdf_filename = f"{document_type}_rev_{revision_id}.pdf"
+    pdf_filepath = os.path.join(REVISIONS_FOLDER, pdf_filename)
+    create_pdf(updated_text, pdf_filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
+    
+    # Generate DOCX
+    docx_filename = f"{document_type}_rev_{revision_id}.docx"
+    docx_filepath = os.path.join(REVISIONS_FOLDER, docx_filename)
+    create_docx(updated_text, docx_filepath, business_name, DOCUMENT_TYPES.get(document_type, "Legal Document"))
+    
+    # Store revision info
+    revision_info = {
+        'session_id': session_id,
+        'revision_id': revision_id,
+        'original_text': original_text,
+        'updated_text': updated_text,
+        'pdf_filename': pdf_filename,
+        'docx_filename': docx_filename,
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    revision_info_file = os.path.join(REVISIONS_FOLDER, f"revision_info_{revision_id}.json")
+    with open(revision_info_file, 'w') as f:
+        json.dump(revision_info, f, indent=2)
+    
+    return revision_info
+
+@app.route('/api/document-revisions/<session_id>', methods=['GET'])
+def get_document_revisions(session_id):
+    """Get all revisions for a document session"""
+    if not session_id:
+        return jsonify({'error': 'Session ID is required'}), 400
+        
+    try:
+        # Verify the session exists
+        stripe.checkout.Session.retrieve(session_id)
+        
+        # Find all revisions for this session
+        revisions = []
+        
+        # Search in the downloads folder for feedback files
+        for file in os.listdir(DOWNLOAD_FOLDER):
+            if file.startswith("feedback_") and file.endswith(".json"):
+                try:
+                    with open(os.path.join(DOWNLOAD_FOLDER, file), 'r') as f:
+                        feedback_data = json.load(f)
+                        if feedback_data.get('session_id') == session_id:
+                            revisions.append({
+                                'revision_id': feedback_data.get('revision_id'),
+                                'status': feedback_data.get('status'),
+                                'timestamp': feedback_data.get('timestamp'),
+                                'comment': feedback_data.get('comment')
+                            })
+                except Exception as e:
+                    app.logger.error(f"Error reading feedback file {file}: {str(e)}")
+        
+        return jsonify({
+            'session_id': session_id,
+            'revisions': sorted(revisions, key=lambda x: x.get('timestamp', ''), reverse=True)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error retrieving revisions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/revised-document/<revision_id>', methods=['GET'])
+def get_revised_document(revision_id):
+    """Get the revised document preview"""
+    if not revision_id:
+        return jsonify({'error': 'Revision ID is required'}), 400
+        
+    try:
+        # Look for the revision info file
+        revision_info_file = os.path.join(REVISIONS_FOLDER, f"revision_info_{revision_id}.json")
+        
+        if not os.path.exists(revision_info_file):
+            return jsonify({'error': 'Revision not found'}), 404
+            
+        with open(revision_info_file, 'r') as f:
+            revision_info = json.load(f)
+            
+        return jsonify({
+            'revision_id': revision_id,
+            'preview': revision_info.get('updated_text')
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error retrieving revised document: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/download-revision/<format>/<revision_id>', methods=['GET'])
+def download_revised_document(format, revision_id):
+    """Download a revised document in the specified format"""
+    if not revision_id or format not in ['pdf', 'docx']:
+        return jsonify({'error': 'Valid revision ID and format (pdf/docx) are required'}), 400
+        
+    try:
+        # Look for the revision info file
+        revision_info_file = os.path.join(REVISIONS_FOLDER, f"revision_info_{revision_id}.json")
+        
+        if not os.path.exists(revision_info_file):
+            return jsonify({'error': 'Revision not found'}), 404
+            
+        with open(revision_info_file, 'r') as f:
+            revision_info = json.load(f)
+            
+        filename = revision_info.get(f'{format}_filename')
+        
+        if not filename:
+            return jsonify({'error': f'No {format.upper()} file found for this revision'}), 404
+            
+        return send_from_directory(REVISIONS_FOLDER, filename, as_attachment=True)
+        
+    except Exception as e:
+        app.logger.error(f"Error downloading revised document: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # Add OPTIONS handler for all routes
