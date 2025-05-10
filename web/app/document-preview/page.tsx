@@ -23,6 +23,7 @@ export default function DocumentPreviewPage() {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'pending' | 'completed'>('idle');
   const [revisions, setRevisions] = useState<Revision[]>([]);
   const [showOriginal, setShowOriginal] = useState(!revisionId);
   const [latestRevisionId, setLatestRevisionId] = useState<string | null>(revisionId);
@@ -110,6 +111,7 @@ export default function DocumentPreviewPage() {
     if (!comment.trim() || !sessionId) return;
     
     setSubmitting(true);
+    setUpdateStatus('pending');
     
     try {
       const response = await api.post('/api/document-feedback', {
@@ -132,12 +134,28 @@ export default function DocumentPreviewPage() {
             // Also refresh the revisions list
             const revisionsResponse = await api.get(`/api/document-revisions/${sessionId}`);
             setRevisions(revisionsResponse.data.revisions || []);
+            
+            // Set status to completed and reset feedback submitted after 5 seconds
+            setUpdateStatus('completed');
+            setTimeout(() => {
+              setFeedbackSubmitted(false);
+            }, 5000);
           } catch (error) {
             console.error("Error fetching revised document:", error);
+            setUpdateStatus('idle');
+            setFeedbackSubmitted(false);
           }
+        } else {
+          setUpdateStatus('completed');
+          // Reset feedback submitted after 5 seconds
+          setTimeout(() => {
+            setFeedbackSubmitted(false);
+          }, 5000);
         }
       } else {
         alert("We received your feedback but couldn't update the document automatically. Our team will review it.");
+        setUpdateStatus('idle');
+        setFeedbackSubmitted(false);
       }
     } catch (error: unknown) {
       console.error("Error submitting feedback:", error);
@@ -170,6 +188,9 @@ export default function DocumentPreviewPage() {
       } else {
         alert("Failed to submit your feedback. Please try again.");
       }
+      
+      setUpdateStatus('idle');
+      setFeedbackSubmitted(false);
     } finally {
       setSubmitting(false);
     }
@@ -265,9 +286,13 @@ export default function DocumentPreviewPage() {
         <h3 className="text-xl font-semibold mb-4">Request Document Changes</h3>
         
         {feedbackSubmitted ? (
-          <div className="bg-green-50 border border-green-200 rounded-md p-4 text-green-800">
-            <p className="font-medium">Thank you for your feedback!</p>
-            <p className="text-sm mt-1">We&apos;ve updated your document with the requested changes.</p>
+          <div className={`border rounded-md p-4 ${updateStatus === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
+            <p className="font-medium">{updateStatus === 'pending' ? 'Processing your request...' : 'Thank you for your feedback!'}</p>
+            <p className="text-sm mt-1">
+              {updateStatus === 'pending' 
+                ? "We're updating your document with the requested changes." 
+                : "We've updated your document with the requested changes."}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleCommentSubmit}>
