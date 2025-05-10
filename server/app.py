@@ -201,7 +201,7 @@ Additional Instructions: {additional_instructions}
 - Use proper indentation and line spacing for readability.
 - Ensure signature fields are properly spaced and formatted as follows:
 
-  **Signature:** ______________________  **Date:** _______________
+  Signature: ______________________     Date: ___________________
 
 - Use bullet points for lists where appropriate.
 - Avoid overly dense paragraphs; break them up into short, digestible sections.
