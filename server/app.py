@@ -594,8 +594,48 @@ def generate_docx_on_demand():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/document-feedback', methods=['POST'])
-def submit_document_feedback():
+# First, add a helper function for keyword-based validation
+def detect_document_type_change_keywords(original_type, comment):
+    """Detect document type changes using keyword matching as a fallback method"""
+    # Clean up comment text and convert to lowercase for matching
+    comment_lower = comment.lower().strip()
+    
+    # Map of document types to their relevant keywords
+    document_keywords = {
+        "nda": ["non-disclosure", "nda", "confidentiality agreement", "secrecy agreement"],
+        "terms": ["terms of service", "terms of use", "tos", "terms and conditions", "service agreement"],
+        "privacy": ["privacy policy", "privacy notice", "data policy", "personal data", "gdpr", "ccpa"],
+        "contract": ["freelance contract", "contractor agreement", "freelancer agreement", "service contract"],
+        "employee": ["employment agreement", "employment contract", "staff contract", "labor contract", "work agreement"],
+        "partnership": ["partnership agreement", "partnership contract", "joint venture", "business partnership"]
+    }
+    
+    # Create a list of all document types except the original
+    other_doc_types = [doc_type for doc_type in document_keywords.keys() if doc_type != original_type]
+    
+    # Check if any keywords from other document types appear in the comment
+    for doc_type in other_doc_types:
+        for keyword in document_keywords[doc_type]:
+            if keyword in comment_lower:
+                return True, doc_type, f"Found keyword '{keyword}' suggesting a change to {doc_type}"
+    
+    # Special case for detecting phrases about changing document types
+    change_indicators = [
+        "change it to", "convert to", "make it a", "transform into", "instead make", 
+        "should be a", "replace with", "switch to", "change the document", "different document",
+        "document type", "type of document", "convert the", "need a different", "not a"
+    ]
+    
+    for indicator in change_indicators:
+        if indicator in comment_lower:
+            return True, "unknown", f"Found change indicator phrase: '{indicator}'"
+    
+    return False, "", ""
+
+# Update the validate-revision-request endpoint
+@app.route('/api/validate-revision-request', methods=['POST'])
+def validate_revision_request():
+    """RAG-based validation to check if user is trying to change document type"""
     try:
         data = request.get_json()
         session_id = data.get('sessionId')
@@ -604,6 +644,214 @@ def submit_document_feedback():
         if not session_id or not comment:
             return jsonify({'error': 'Both sessionId and comment are required'}), 400
             
+        # Retrieve the session to get the original document type
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            form_data = json.loads(session.metadata.get('form_data', '{}'))
+            original_document_type = form_data.get('document_type', '')
+            document_type_name = DOCUMENT_TYPES.get(original_document_type, "Custom Document")
+        except Exception as e:
+            return jsonify({'error': f'Invalid session: {str(e)}'}), 400
+        
+        # First perform keyword-based validation
+        is_changing, detected_type, explanation = detect_document_type_change_keywords(original_document_type, comment)
+        if is_changing:
+            return jsonify({
+                'is_valid': False,
+                'explanation': explanation,
+                'detected_target_type': detected_type,
+                'original_document_type': document_type_name,
+                'validation_method': 'keyword'
+            })
+            
+        # If no keywords detected, use LLM-based validation as a secondary check
+        prompt = f"""
+DOCUMENT TYPE VALIDATION TASK
+
+You are a document validator whose ONLY JOB is to prevent users from changing document types.
+
+Original document type: {document_type_name}
+
+User's change request:
+```
+{comment}
+```
+
+INSTRUCTIONS (EXTREMELY IMPORTANT):
+1. Your ONLY task is to determine if the user is trying to change the document type
+2. You must be EXTREMELY STRICT in your analysis - any indication of changing document type should be flagged
+3. Pay special attention to any text that suggests changing the document from {document_type_name} to any other type
+4. Flag requests trying to convert their {document_type_name} to ANY other type of document
+5. Examples of document types: Non-Disclosure Agreement (NDA), Website Terms of Service, Privacy Policy, Freelance Contract, Employment Agreement, Partnership Agreement
+
+Examples of document type change attempts to catch:
+- "Can you turn this into a Freelance Contract instead?"
+- "I need this to be a Privacy Policy, not a Terms of Service"
+- "Please modify this to work as an Employment Agreement"
+- "Add sections that would make this function as a Partnership Agreement"
+- "I actually need a different type of document"
+
+This is CRITICAL: If there is ANY doubt, classify it as a document type change. False positives are preferred over false negatives.
+
+Return ONLY a valid JSON object with this exact format:
+{{
+  "is_changing_document_type": true/false,
+  "explanation": "Your detailed explanation",
+  "detected_target_type": "The document type they are trying to change to (if any)"
+}}
+"""
+
+        # Generate the validation result using OpenAI
+        response = client.chat.completions.create(
+            model="gpt-4",  # Using GPT-4 for better accuracy in validation
+            messages=[
+                {"role": "system", "content": "You are a document validator assistant with expertise in legal documents. Your ONLY task is to detect document type change attempts."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500,
+            temperature=0.2
+        )
+        
+        # Parse the JSON response manually
+        try:
+            validation_result = json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError:
+            # Fallback in case the response isn't valid JSON
+            app.logger.error(f"Failed to parse JSON response: {response.choices[0].message.content}")
+            # If we can't parse the JSON, be cautious and assume it might be a document change
+            validation_result = {
+                "is_changing_document_type": True,
+                "explanation": "Could not validate the request properly, rejecting for safety.",
+                "detected_target_type": "unknown"
+            }
+        
+        return jsonify({
+            'is_valid': not validation_result.get('is_changing_document_type', True),  # Default to True (invalid) if not specified
+            'explanation': validation_result.get('explanation', ''),
+            'detected_target_type': validation_result.get('detected_target_type', ''),
+            'original_document_type': document_type_name,
+            'validation_method': 'llm'
+        })
+            
+    except Exception as e:
+        app.logger.error(f"Error validating revision request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/document-feedback', methods=['POST'])
+def submit_document_feedback():
+    try:
+        data = request.get_json()
+        session_id = data.get('sessionId')
+        comment = data.get('comment')
+        bypass_validation = data.get('bypassValidation', False)
+        
+        if not session_id or not comment:
+            return jsonify({'error': 'Both sessionId and comment are required'}), 400
+            
+        # Perform validation if not bypassed
+        if not bypass_validation:
+            try:
+                # Retrieve the session to get the original document type
+                session = stripe.checkout.Session.retrieve(session_id)
+                form_data = json.loads(session.metadata.get('form_data', '{}'))
+                original_document_type = form_data.get('document_type', '')
+                document_type_name = DOCUMENT_TYPES.get(original_document_type, "Custom Document")
+                
+                # First perform keyword-based validation
+                is_changing, detected_type, explanation = detect_document_type_change_keywords(original_document_type, comment)
+                if is_changing:
+                    return jsonify({
+                        'success': False,
+                        'validation_failed': True,
+                        'message': 'Document type change detected',
+                        'explanation': explanation,
+                        'detected_target_type': detected_type,
+                        'original_document_type': document_type_name,
+                        'validation_method': 'keyword'
+                    }), 400
+                
+                # Use LLM to check if the user is trying to change the document type
+                prompt = f"""
+DOCUMENT TYPE VALIDATION TASK
+
+You are a document validator whose ONLY JOB is to prevent users from changing document types.
+
+Original document type: {document_type_name}
+
+User's change request:
+```
+{comment}
+```
+
+INSTRUCTIONS (EXTREMELY IMPORTANT):
+1. Your ONLY task is to determine if the user is trying to change the document type
+2. You must be EXTREMELY STRICT in your analysis - any indication of changing document type should be flagged
+3. Pay special attention to any text that suggests changing the document from {document_type_name} to any other type
+4. Flag requests trying to convert their {document_type_name} to ANY other type of document
+5. Examples of document types: Non-Disclosure Agreement (NDA), Website Terms of Service, Privacy Policy, Freelance Contract, Employment Agreement, Partnership Agreement
+
+Examples of document type change attempts to catch:
+- "Can you turn this into a Freelance Contract instead?"
+- "I need this to be a Privacy Policy, not a Terms of Service"
+- "Please modify this to work as an Employment Agreement"
+- "Add sections that would make this function as a Partnership Agreement"
+- "I actually need a different type of document"
+
+This is CRITICAL: If there is ANY doubt, classify it as a document type change. False positives are preferred over false negatives.
+
+Return ONLY a valid JSON object with this exact format:
+{{
+  "is_changing_document_type": true/false,
+  "explanation": "Your detailed explanation",
+  "detected_target_type": "The document type they are trying to change to (if any)"
+}}
+"""
+
+                # Generate the validation result using OpenAI
+                response = client.chat.completions.create(
+                    model="gpt-4",  # Using GPT-4 for better accuracy in validation
+                    messages=[
+                        {"role": "system", "content": "You are a document validator assistant with expertise in legal documents. Your ONLY task is to detect document type change attempts."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=500,
+                    temperature=0.2
+                )
+                
+                # Parse the JSON response manually
+                try:
+                    validation_result = json.loads(response.choices[0].message.content)
+                except json.JSONDecodeError:
+                    # Fallback in case the response isn't valid JSON
+                    app.logger.error(f"Failed to parse JSON response: {response.choices[0].message.content}")
+                    # If we can't parse the JSON, be cautious and assume it might be a document change
+                    validation_result = {
+                        "is_changing_document_type": True,
+                        "explanation": "Could not validate the request properly, rejecting for safety.",
+                        "detected_target_type": "unknown"
+                    }
+                
+                # Check if the validation failed
+                if validation_result.get('is_changing_document_type', True):  # Default to True if not specified
+                    return jsonify({
+                        'success': False,
+                        'validation_failed': True,
+                        'message': 'Document type change detected',
+                        'explanation': validation_result.get('explanation', ''),
+                        'detected_target_type': validation_result.get('detected_target_type', ''),
+                        'original_document_type': document_type_name,
+                        'validation_method': 'llm'
+                    }), 400
+            except Exception as validation_error:
+                app.logger.error(f"Validation error: {str(validation_error)}")
+                # Instead of continuing, reject the request when validation fails
+                return jsonify({
+                    'success': False,
+                    'validation_failed': True,
+                    'message': f'Validation error: {str(validation_error)}',
+                }), 400
+        
+        # Continue with document generation if validation passes
         # Retrieve the session to verify it exists
         try:
             session = stripe.checkout.Session.retrieve(session_id)

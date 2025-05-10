@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "@/utils/axios";
+import { AxiosError } from "axios";
 
 interface Revision {
   revision_id: string;
@@ -138,9 +139,37 @@ export default function DocumentPreviewPage() {
       } else {
         alert("We received your feedback but couldn't update the document automatically. Our team will review it.");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error submitting feedback:", error);
-      alert("Failed to submit your feedback. Please try again.");
+      
+      // Handle document type validation errors
+      const axiosError = error as AxiosError<{
+        validation_failed?: boolean;
+        message?: string;
+        explanation?: string;
+        original_document_type?: string;
+      }>;
+      
+      if (axiosError.response?.status === 400 && axiosError.response.data && 'validation_failed' in axiosError.response.data) {
+        const validationData = axiosError.response.data;
+        let errorMessage = "Your request could not be processed: ";
+        
+        if (validationData.message === 'Document type change detected') {
+          errorMessage = `We cannot change the document type from "${validationData.original_document_type}" to another type.\n\n`;
+          
+          if (validationData.explanation) {
+            errorMessage += `Reason: ${validationData.explanation}\n\n`;
+          }
+          
+          errorMessage += "Please submit a revision request that maintains the same document type.";
+        } else {
+          errorMessage += validationData.message || "Unknown validation error";
+        }
+        
+        alert(errorMessage);
+      } else {
+        alert("Failed to submit your feedback. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
