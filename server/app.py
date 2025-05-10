@@ -211,11 +211,11 @@ Special Clauses to Include: {', '.join(clauses) if clauses else 'None'}
 Additional Instructions: {additional_instructions}
 
 **Formatting Guidelines:**
-- Use clear section headings in bold and all caps (e.g., **TERMS AND CONDITIONS**).
+- Use clear section headings in bold and all caps (e.g., TERMS AND CONDITIONS).
 - Use proper indentation and line spacing for readability.
 - Ensure signature fields are properly spaced and formatted as follows:
 
-  **Signature:** ______________________  **Date:** _______________
+  Signature: ______________________  Date: _______________
 
 - Use bullet points for lists where appropriate.
 - Avoid overly dense paragraphs; break them up into short, digestible sections.
